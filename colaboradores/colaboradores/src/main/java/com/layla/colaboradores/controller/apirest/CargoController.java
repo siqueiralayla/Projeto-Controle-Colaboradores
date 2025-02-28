@@ -43,8 +43,8 @@ public class CargoController {
 
     @Operation(summary = "Obtém um cargo pelo ID")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cargo encontrado"),
-            @ApiResponse(responseCode = "404", description = "Cargo não encontrado")
+            @ApiResponse(responseCode = "200", description = "CargoRepository.java encontrado"),
+            @ApiResponse(responseCode = "404", description = "CargoRepository.java não encontrado")
     })
     @GetMapping("/{id}")
     public ResponseEntity<Cargo> getCargoById(@PathVariable Long id) {
@@ -58,7 +58,7 @@ public class CargoController {
 
     @Operation(summary = "Cria um novo cargo")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Cargo criado com sucesso")
+            @ApiResponse(responseCode = "201", description = "CargoRepository.java criado com sucesso")
     })
     @PostMapping("/criar")
     public ResponseEntity<Cargo> createCargo(@RequestBody Cargo novoCargo) {
@@ -69,8 +69,8 @@ public class CargoController {
 
     @Operation(summary = "Atualiza um cargo existente")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cargo atualizado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Cargo não encontrado")
+            @ApiResponse(responseCode = "200", description = "CargoRepository.java atualizado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "CargoRepository.java não encontrado")
     })
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<Cargo> updateCargo(@PathVariable Long id, @RequestBody Cargo cargoAtualizado) {
@@ -85,8 +85,8 @@ public class CargoController {
 
     @Operation(summary = "Exclui um cargo pelo ID")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Cargo excluído com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Cargo não encontrado")
+            @ApiResponse(responseCode = "204", description = "CargoRepository.java excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "CargoRepository.java não encontrado")
     })
     @DeleteMapping("/excluir/{id}")
     public ResponseEntity<Void> deleteCargo(@PathVariable Long id) {
@@ -94,7 +94,7 @@ public class CargoController {
         return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
-    // Classe interna representando um Cargo
+    // Classe interna representando um CargoRepository.java
     static class Cargo {
         private Long id;
         private String nome;
