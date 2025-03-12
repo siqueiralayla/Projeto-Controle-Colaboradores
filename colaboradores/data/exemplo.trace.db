@@ -4,3 +4,6 @@ alter table if exists funcionarios alter column salario set data type DECIMAL(7,
 2025-02-28 01:55:06.393359-03:00 jdbc[3]: exception
 org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "alter table if exists funcionarios alter column salario set data type DECIMAL(7,2) [*]DEFAULT 0.00"; SQL statement:
 alter table if exists funcionarios alter column salario set data type DECIMAL(7,2) DEFAULT 0.00 [42000-232]
+2025-03-11 18:35:34.858153-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "alter table if exists funcionarios alter column salario set data type DECIMAL(7,2) [*]DEFAULT 0.00"; SQL statement:
+alter table if exists funcionarios alter column salario set data type DECIMAL(7,2) DEFAULT 0.00 [42000-232]
