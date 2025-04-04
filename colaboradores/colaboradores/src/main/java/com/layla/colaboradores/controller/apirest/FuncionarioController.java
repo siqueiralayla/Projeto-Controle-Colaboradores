@@ -1,45 +1,45 @@
 package com.layla.colaboradores.controller.apirest;
 
+import com.layla.colaboradores.entity.Funcionario;
+import com.layla.colaboradores.exception.RecursoNaoEncontradoException;
+import com.layla.colaboradores.hateoas.FuncionarioModelAssembler;
+import com.layla.colaboradores.service.FuncionarioService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/funcionarios")
 @Tag(name = "FuncionarioController", description = "Gerenciamento de Funcionários")
 public class FuncionarioController {
 
-    private final List<Funcionario> funcionarios = new ArrayList<>();
-    private final List<CargoController.Cargo> cargos = new ArrayList<>();
+    @Autowired
+    private FuncionarioService funcionarioService;
 
-    public FuncionarioController() {
-        // Criando Cargos mockados
-        CargoController.Cargo analistaRH = new CargoController.Cargo(1L, "Analista de RH", new DepartamentoController.Departamento(1L, "RH"));
-        CargoController.Cargo gerenteFinanceiro = new CargoController.Cargo(2L, "Gerente Financeiro", new DepartamentoController.Departamento(2L, "Financeiro"));
-
-        cargos.add(analistaRH);
-        cargos.add(gerenteFinanceiro);
-
-        // Criando Funcionários mockados
-        funcionarios.add(new Funcionario(1L, "João Silva", 5000.00, LocalDate.of(2022, 5, 10), null, analistaRH));
-        funcionarios.add(new Funcionario(2L, "Maria Souza", 7000.00, LocalDate.of(2021, 8, 20), LocalDate.of(2024, 1, 15), gerenteFinanceiro));
-    }
+    @Autowired
+    private FuncionarioModelAssembler assembler;
 
     @Operation(summary = "Lista todos os funcionários")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de funcionários retornada com sucesso")
     })
-    @GetMapping("/listar")
-    public ResponseEntity<List<Funcionario>> getAllFuncionarios() {
-        return ResponseEntity.ok(funcionarios);
+    @GetMapping
+    public CollectionModel<EntityModel<Funcionario>> getAllFuncionarios() {
+        List<Funcionario> funcionarios = funcionarioService.buscarTodos();
+        List<EntityModel<Funcionario>> models = funcionarios.stream().map(assembler::toModel).toList();
+
+        return CollectionModel.of(models, linkTo(methodOn(FuncionarioController.class).getAllFuncionarios()).withSelfRel());
     }
 
     @Operation(summary = "Obtém um funcionário pelo ID")
@@ -48,24 +48,24 @@ public class FuncionarioController {
             @ApiResponse(responseCode = "404", description = "Funcionário não encontrado")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Funcionario> getFuncionarioById(@PathVariable Long id) {
-        Optional<Funcionario> funcionario = funcionarios.stream()
-                .filter(f -> f.getId().equals(id))
-                .findFirst();
-
-        return funcionario.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public EntityModel<Funcionario> getFuncionarioById(@PathVariable Long id) {
+        Funcionario funcionario = funcionarioService.buscarPorId(id);
+        if (funcionario == null) {
+            throw new RecursoNaoEncontradoException("Funcionário com ID " + id + " não encontrado");
+        }
+        return assembler.toModel(funcionario);
     }
 
     @Operation(summary = "Cria um novo funcionário")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Funcionário criado com sucesso")
     })
-    @PostMapping("/criar")
-    public ResponseEntity<Funcionario> createFuncionario(@RequestBody Funcionario novoFuncionario) {
-        novoFuncionario.setId((long) (funcionarios.size() + 1)); // Simulando ID auto incrementável
-        funcionarios.add(novoFuncionario);
-        return ResponseEntity.status(201).body(novoFuncionario);
+    @PostMapping
+    public ResponseEntity<EntityModel<Funcionario>> createFuncionario(@RequestBody Funcionario novoFuncionario) {
+        funcionarioService.salvar(novoFuncionario);
+        return ResponseEntity.created(
+                        linkTo(methodOn(FuncionarioController.class).getFuncionarioById(novoFuncionario.getId())).toUri())
+                .body(assembler.toModel(novoFuncionario));
     }
 
     @Operation(summary = "Atualiza um funcionário existente")
@@ -73,22 +73,21 @@ public class FuncionarioController {
             @ApiResponse(responseCode = "200", description = "Funcionário atualizado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Funcionário não encontrado")
     })
-    @PutMapping("/atualizar/{id}")
-    public ResponseEntity<Funcionario> updateFuncionario(@PathVariable Long id, @RequestBody Funcionario funcionarioAtualizado) {
-        for (int i = 0; i < funcionarios.size(); i++) {
-            if (funcionarios.get(i).getId().equals(id)) {
-                funcionarios.set(i, new Funcionario(
-                        id,
-                        funcionarioAtualizado.getNome(),
-                        funcionarioAtualizado.getSalario(),
-                        funcionarioAtualizado.getDataEntrada(),
-                        funcionarioAtualizado.getDataSaida(),
-                        funcionarioAtualizado.getCargo()
-                ));
-                return ResponseEntity.ok(funcionarios.get(i));
-            }
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<Funcionario>> updateFuncionario(@PathVariable Long id, @RequestBody Funcionario atualizado) {
+        Funcionario existente = funcionarioService.buscarPorId(id);
+        if (existente == null) {
+            throw new RecursoNaoEncontradoException("Funcionário com ID " + id + " não encontrado");
         }
-        return ResponseEntity.notFound().build();
+
+        existente.setNome(atualizado.getNome());
+        existente.setSalario(atualizado.getSalario());
+        existente.setDataEntrada(atualizado.getDataEntrada());
+        existente.setDataSaida(atualizado.getDataSaida());
+        existente.setCargo(atualizado.getCargo());
+
+        funcionarioService.editar(existente);
+        return ResponseEntity.ok(assembler.toModel(existente));
     }
 
     @Operation(summary = "Exclui um funcionário pelo ID")
@@ -96,78 +95,13 @@ public class FuncionarioController {
             @ApiResponse(responseCode = "204", description = "Funcionário excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Funcionário não encontrado")
     })
-    @DeleteMapping("/excluir/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFuncionario(@PathVariable Long id) {
-        boolean removed = funcionarios.removeIf(f -> f.getId().equals(id));
-        return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
-    }
-
-    // Classe interna representando um Funcionário
-    static class Funcionario {
-        private Long id;
-        private String nome;
-        private double salario;
-        private LocalDate dataEntrada;
-        private LocalDate dataSaida; // Opcional
-        private CargoController.Cargo cargo;
-
-        public Funcionario() {}
-
-        public Funcionario(Long id, String nome, double salario, LocalDate dataEntrada, LocalDate dataSaida, CargoController.Cargo cargo) {
-            this.id = id;
-            this.nome = nome;
-            this.salario = salario;
-            this.dataEntrada = dataEntrada;
-            this.dataSaida = dataSaida;
-            this.cargo = cargo;
+        Funcionario existente = funcionarioService.buscarPorId(id);
+        if (existente == null) {
+            throw new RecursoNaoEncontradoException("Funcionário com ID " + id + " não encontrado");
         }
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getNome() {
-            return nome;
-        }
-
-        public void setNome(String nome) {
-            this.nome = nome;
-        }
-
-        public double getSalario() {
-            return salario;
-        }
-
-        public void setSalario(double salario) {
-            this.salario = salario;
-        }
-
-        public LocalDate getDataEntrada() {
-            return dataEntrada;
-        }
-
-        public void setDataEntrada(LocalDate dataEntrada) {
-            this.dataEntrada = dataEntrada;
-        }
-
-        public LocalDate getDataSaida() {
-            return dataSaida;
-        }
-
-        public void setDataSaida(LocalDate dataSaida) {
-            this.dataSaida = dataSaida;
-        }
-
-        public CargoController.Cargo getCargo() {
-            return cargo;
-        }
-
-        public void setCargo(CargoController.Cargo cargo) {
-            this.cargo = cargo;
-        }
+        funcionarioService.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }
