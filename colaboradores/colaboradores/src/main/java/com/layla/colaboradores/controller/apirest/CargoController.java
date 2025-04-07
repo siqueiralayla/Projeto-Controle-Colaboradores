@@ -1,135 +1,104 @@
 package com.layla.colaboradores.controller.apirest;
 
+import com.layla.colaboradores.entity.Cargo;
+import com.layla.colaboradores.exception.RecursoNaoEncontradoException;
+import com.layla.colaboradores.hateoas.CargoModelAssembler;
+import com.layla.colaboradores.service.CargoService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/cargos")
 @Tag(name = "CargoController", description = "Gerenciamento de Cargos")
 public class CargoController {
 
-    private final List<Cargo> cargos = new ArrayList<>();
-    private final List<DepartamentoController.Departamento> departamentos = new ArrayList<>();
+    @Autowired
+    private CargoService cargoService;
 
-    public CargoController() {
-        // Criando departamentos mockados
-        DepartamentoController.Departamento rh = new DepartamentoController.Departamento(1L, "RH");
-        DepartamentoController.Departamento financeiro = new DepartamentoController.Departamento(2L, "Financeiro");
-
-        departamentos.add(rh);
-        departamentos.add(financeiro);
-
-        // Criando cargos mockados e associando a departamentos
-        cargos.add(new Cargo(1L, "Analista de RH", rh));
-        cargos.add(new Cargo(2L, "Gerente Financeiro", financeiro));
-    }
+    @Autowired
+    private CargoModelAssembler assembler;
 
     @Operation(summary = "Lista todos os cargos")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso")
     })
-    @GetMapping("/listar")
-    public ResponseEntity<List<Cargo>> getAllCargos() {
-        return ResponseEntity.ok(cargos);
+    @GetMapping
+    public CollectionModel<EntityModel<Cargo>> getAllCargos() {
+        List<Cargo> cargos = cargoService.buscarTodos();
+        List<EntityModel<Cargo>> models = cargos.stream().map(assembler::toModel).toList();
+
+        return CollectionModel.of(models, linkTo(methodOn(CargoController.class).getAllCargos()).withSelfRel());
     }
 
     @Operation(summary = "Obtém um cargo pelo ID")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "CargoRepository.java encontrado"),
-            @ApiResponse(responseCode = "404", description = "CargoRepository.java não encontrado")
+            @ApiResponse(responseCode = "200", description = "Cargo encontrado"),
+            @ApiResponse(responseCode = "404", description = "Cargo não encontrado")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Cargo> getCargoById(@PathVariable Long id) {
-        Optional<Cargo> cargo = cargos.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst();
-
-        return cargo.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public EntityModel<Cargo> getCargoById(@PathVariable Long id) {
+        Cargo cargo = cargoService.buscarPorId(id);
+        if (cargo == null) {
+            throw new RecursoNaoEncontradoException("Cargo com ID " + id + " não encontrado");
+        }
+        return assembler.toModel(cargo);
     }
 
     @Operation(summary = "Cria um novo cargo")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "CargoRepository.java criado com sucesso")
+            @ApiResponse(responseCode = "201", description = "Cargo criado com sucesso")
     })
-    @PostMapping("/criar")
-    public ResponseEntity<Cargo> createCargo(@RequestBody Cargo novoCargo) {
-        novoCargo.setId((long) (cargos.size() + 1)); // Simulando ID auto incrementável
-        cargos.add(novoCargo);
-        return ResponseEntity.status(201).body(novoCargo);
+    @PostMapping
+    public ResponseEntity<EntityModel<Cargo>> createCargo(@RequestBody Cargo novoCargo) {
+        cargoService.salvar(novoCargo);
+        return ResponseEntity.created(
+                        linkTo(methodOn(CargoController.class).getCargoById(novoCargo.getId())).toUri())
+                .body(assembler.toModel(novoCargo));
     }
 
     @Operation(summary = "Atualiza um cargo existente")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "CargoRepository.java atualizado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "CargoRepository.java não encontrado")
+            @ApiResponse(responseCode = "200", description = "Cargo atualizado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Cargo não encontrado")
     })
-    @PutMapping("/atualizar/{id}")
-    public ResponseEntity<Cargo> updateCargo(@PathVariable Long id, @RequestBody Cargo cargoAtualizado) {
-        for (int i = 0; i < cargos.size(); i++) {
-            if (cargos.get(i).getId().equals(id)) {
-                cargos.set(i, new Cargo(id, cargoAtualizado.getNome(), cargoAtualizado.getDepartamento()));
-                return ResponseEntity.ok(cargos.get(i));
-            }
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<Cargo>> updateCargo(@PathVariable Long id, @RequestBody Cargo atualizado) {
+        Cargo existente = cargoService.buscarPorId(id);
+        if (existente == null) {
+            throw new RecursoNaoEncontradoException("Cargo com ID " + id + " não encontrado");
         }
-        return ResponseEntity.notFound().build();
+
+        existente.setNome(atualizado.getNome());
+        existente.setDepartamento(atualizado.getDepartamento());
+        cargoService.editar(existente);
+
+        return ResponseEntity.ok(assembler.toModel(existente));
     }
 
     @Operation(summary = "Exclui um cargo pelo ID")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "CargoRepository.java excluído com sucesso"),
-            @ApiResponse(responseCode = "404", description = "CargoRepository.java não encontrado")
+            @ApiResponse(responseCode = "204", description = "Cargo excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Cargo não encontrado")
     })
-    @DeleteMapping("/excluir/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCargo(@PathVariable Long id) {
-        boolean removed = cargos.removeIf(c -> c.getId().equals(id));
-        return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
-    }
-
-    // Classe interna representando um CargoRepository.java
-    static class Cargo {
-        private Long id;
-        private String nome;
-        private DepartamentoController.Departamento departamento;
-
-        public Cargo() {}
-
-        public Cargo(Long id, String nome, DepartamentoController.Departamento departamento) {
-            this.id = id;
-            this.nome = nome;
-            this.departamento = departamento;
+        Cargo existente = cargoService.buscarPorId(id);
+        if (existente == null) {
+            throw new RecursoNaoEncontradoException("Cargo com ID " + id + " não encontrado");
         }
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getNome() {
-            return nome;
-        }
-
-        public void setNome(String nome) {
-            this.nome = nome;
-        }
-
-        public DepartamentoController.Departamento getDepartamento() {
-            return departamento;
-        }
-
-        public void setDepartamento(DepartamentoController.Departamento departamento) {
-            this.departamento = departamento;
-        }
+        cargoService.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }

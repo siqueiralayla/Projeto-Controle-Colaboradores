@@ -1,36 +1,47 @@
 package com.layla.colaboradores.controller.apirest;
 
+import com.layla.colaboradores.entity.Departamento;
+import com.layla.colaboradores.exception.RecursoNaoEncontradoException;
+import com.layla.colaboradores.hateoas.DepartamentoModelAssembler;
+import com.layla.colaboradores.service.DepartamentoService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/departamentos")
 @Tag(name = "DepartamentoController", description = "Gerenciamento de Departamentos")
 public class DepartamentoController {
 
-    private final List<Departamento> departamentos = new ArrayList<>();
+    @Autowired
+    private DepartamentoService departamentoService;
 
-    public DepartamentoController() {
-        // Mock de dados iniciais
-        departamentos.add(new Departamento(1L, "RH"));
-        departamentos.add(new Departamento(2L, "Financeiro"));
-    }
+    @Autowired
+    private DepartamentoModelAssembler assembler;
 
     @Operation(summary = "Lista todos os departamentos")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de departamentos retornada com sucesso")
     })
-    @GetMapping("/listar")
-    public ResponseEntity<List<Departamento>> getAllDepartamentos() {
-        return ResponseEntity.ok(departamentos);
+    @GetMapping
+    public CollectionModel<EntityModel<Departamento>> getAllDepartamentos() {
+        List<Departamento> lista = departamentoService.buscarTodos();
+        List<EntityModel<Departamento>> models = lista.stream()
+                .map(assembler::toModel)
+                .toList();
+
+        return CollectionModel.of(models, linkTo(methodOn(DepartamentoController.class).getAllDepartamentos()).withSelfRel());
     }
 
     @Operation(summary = "Obtém um departamento pelo ID")
@@ -39,24 +50,26 @@ public class DepartamentoController {
             @ApiResponse(responseCode = "404", description = "Departamento não encontrado")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Departamento> getDepartamentoById(@PathVariable Long id) {
-        Optional<Departamento> departamento = departamentos.stream()
-                .filter(dep -> dep.getId().equals(id))
-                .findFirst();
+    public EntityModel<Departamento> getDepartamentoById(@PathVariable Long id) {
+        Departamento departamento = departamentoService.buscarPorId(id);
 
-        return departamento.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        if (departamento == null) {
+            throw new RecursoNaoEncontradoException("Departamento com ID " + id + " não encontrado");
+        }
+
+        return assembler.toModel(departamento);
     }
 
     @Operation(summary = "Cria um novo departamento")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Departamento criado com sucesso")
     })
-    @PostMapping("/criar")
-    public ResponseEntity<Departamento> createDepartamento(@RequestBody Departamento novoDepartamento) {
-        novoDepartamento.setId((long) (departamentos.size() + 1)); // Simulando um ID auto incrementável
-        departamentos.add(novoDepartamento);
-        return ResponseEntity.status(201).body(novoDepartamento);
+    @PostMapping
+    public ResponseEntity<EntityModel<Departamento>> createDepartamento(@RequestBody Departamento novoDepartamento) {
+        departamentoService.salvar(novoDepartamento);
+        return ResponseEntity
+                .created(linkTo(methodOn(DepartamentoController.class).getDepartamentoById(novoDepartamento.getId())).toUri())
+                .body(assembler.toModel(novoDepartamento));
     }
 
     @Operation(summary = "Atualiza um departamento existente")
@@ -64,15 +77,16 @@ public class DepartamentoController {
             @ApiResponse(responseCode = "200", description = "Departamento atualizado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Departamento não encontrado")
     })
-    @PutMapping("/atualizar/{id}")
-    public ResponseEntity<Departamento> updateDepartamento(@PathVariable Long id, @RequestBody Departamento departamentoAtualizado) {
-        for (int i = 0; i < departamentos.size(); i++) {
-            if (departamentos.get(i).getId().equals(id)) {
-                departamentos.set(i, new Departamento(id, departamentoAtualizado.getNome()));
-                return ResponseEntity.ok(departamentos.get(i));
-            }
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<Departamento>> updateDepartamento(@PathVariable Long id, @RequestBody Departamento dadosAtualizados) {
+        Departamento existente = departamentoService.buscarPorId(id);
+        if (existente == null) {
+            throw new RecursoNaoEncontradoException("Departamento com ID " + id + " não encontrado");
         }
-        return ResponseEntity.notFound().build();
+
+        existente.setNome(dadosAtualizados.getNome());
+        departamentoService.editar(existente);
+        return ResponseEntity.ok(assembler.toModel(existente));
     }
 
     @Operation(summary = "Exclui um departamento pelo ID")
@@ -80,38 +94,14 @@ public class DepartamentoController {
             @ApiResponse(responseCode = "204", description = "Departamento excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Departamento não encontrado")
     })
-    @DeleteMapping("/excluir/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDepartamento(@PathVariable Long id) {
-        boolean removed = departamentos.removeIf(dep -> dep.getId().equals(id));
-        return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
-    }
-
-    // Classe interna representando um Departamento
-    static class Departamento {
-        private Long id;
-        private String nome;
-
-        public Departamento() {}
-
-        public Departamento(Long id, String nome) {
-            this.id = id;
-            this.nome = nome;
+        Departamento existente = departamentoService.buscarPorId(id);
+        if (existente == null) {
+            throw new RecursoNaoEncontradoException("Departamento com ID " + id + " não encontrado");
         }
 
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getNome() {
-            return nome;
-        }
-
-        public void setNome(String nome) {
-            this.nome = nome;
-        }
+        departamentoService.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }
