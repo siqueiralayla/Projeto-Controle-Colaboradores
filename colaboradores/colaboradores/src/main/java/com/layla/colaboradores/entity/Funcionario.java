@@ -5,6 +5,11 @@ import java.time.LocalDate;
 
 import jakarta.persistence.*;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.format.annotation.NumberFormat;
@@ -16,13 +21,18 @@ import org.springframework.format.annotation.NumberFormat.Style;
 public class Funcionario extends AbstractEntity<Long> {
 
 
+    @NotBlank
+    @Size(max = 255, min = 3)
     @Column(nullable = false, unique = true)
     private String nome;
 
+    @NotNull
     @NumberFormat(style = Style.CURRENCY, pattern = "#,##0.00")
     @Column(nullable = false, columnDefinition = "DECIMAL(7,2) DEFAULT 0.00")
     private BigDecimal salario;
 
+    @NotNull
+    @PastOrPresent(message = "{PastOrPresent.funcionario.dataEntrada}")
     @DateTimeFormat(iso = ISO.DATE, pattern = "")
     @Column(name= "data_entrada", nullable = false, columnDefinition = "DATE")
     private LocalDate dataEntrada;
@@ -31,11 +41,12 @@ public class Funcionario extends AbstractEntity<Long> {
     @Column(name = "data_saida", columnDefinition = "DATE")
     private LocalDate dataSaida;
 
-
+    @Valid
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "endereco_id_fk")
     private Endereco endereco;
 
+    @NotNull(message = "{NotNull.funcionario.cargo}")
     @ManyToOne
     @JoinColumn(name = "cargo_id_fk")
     private Cargo cargo;
