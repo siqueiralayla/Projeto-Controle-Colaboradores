@@ -22,7 +22,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 @RestController
 @RequestMapping("/cargos")
 @Tag(name = "CargoController", description = "Gerenciamento de Cargos")
-public class CargoController {
+public class CargoControllerAPI {
 
     @Autowired
     private CargoService cargoService;
@@ -39,7 +39,7 @@ public class CargoController {
         List<Cargo> cargos = cargoService.buscarTodos();
         List<EntityModel<Cargo>> models = cargos.stream().map(assembler::toModel).toList();
 
-        return CollectionModel.of(models, linkTo(methodOn(CargoController.class).getAllCargos()).withSelfRel());
+        return CollectionModel.of(models, linkTo(methodOn(CargoControllerAPI.class).getAllCargos()).withSelfRel());
     }
 
     @Operation(summary = "Obtém um cargo pelo ID")
@@ -64,7 +64,7 @@ public class CargoController {
     public ResponseEntity<EntityModel<Cargo>> createCargo(@RequestBody Cargo novoCargo) {
         cargoService.salvar(novoCargo);
         return ResponseEntity.created(
-                        linkTo(methodOn(CargoController.class).getCargoById(novoCargo.getId())).toUri())
+                        linkTo(methodOn(CargoControllerAPI.class).getCargoById(novoCargo.getId())).toUri())
                 .body(assembler.toModel(novoCargo));
     }
 

@@ -1,11 +1,43 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+	<meta charset="UTF-8" />
+	<title>Home - Sistema de Colaboradores</title>
 </head>
 <body>
-<h1>Bem-vindo à Página Home!</h1>
+
+<section class="layout-content" layout:fragment="corpo">
+	<div class="container mt-4">
+		<div class="row align-items-center">
+			<div class="col-md-6">
+				<h1 class="display-4">Bem-vindo ao Sistema de Colaboradores</h1>
+				<p class="lead">
+					Gerencie de forma eficiente seus colaboradores, cargos e setores.
+				</p>
+				<hr class="my-4">
+				<p>Use o menu acima ou os botões abaixo para navegar.</p>
+				<a class="btn btn-primary btn-lg mb-2" href="/funcionarios/listar" role="button">Ver Colaboradores</a>
+				<a class="btn btn-secondary btn-lg mb-2" href="/departamentos/listar" role="button">Ver Departamentos</a>
+			</div>
+			<div class="col-md-6 text-center">
+				<img src="/image/home.webp" class="img-fluid rounded shadow" alt="Sistema de Colaboradores">
+			</div>
+		</div>
+
+		<div class="row mt-5">
+			<div class="col">
+				<h3>Funcionalidades do Sistema</h3>
+				<ul class="list-group list-group-flush">
+					<li class="list-group-item">✔ Cadastro e gerenciamento de colaboradores</li>
+					<li class="list-group-item">✔ Atribuição de cargos e departamentos</li>
+					<li class="list-group-item">✔ Integração com banco de dados</li>
+					<li class="list-group-item">✔ Interface amigável com Thymeleaf e Bootstrap</li>
+
+				</ul>
+			</div>
+		</div>
+	</div>
+</section>
+
 </body>
 </html>

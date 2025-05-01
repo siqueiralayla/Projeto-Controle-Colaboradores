@@ -22,7 +22,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 @RestController
 @RequestMapping("/funcionarios")
 @Tag(name = "FuncionarioController", description = "Gerenciamento de Funcionários")
-public class FuncionarioController {
+public class FuncionarioControllerAPI {
 
     @Autowired
     private FuncionarioService funcionarioService;
@@ -39,7 +39,7 @@ public class FuncionarioController {
         List<Funcionario> funcionarios = funcionarioService.buscarTodos();
         List<EntityModel<Funcionario>> models = funcionarios.stream().map(assembler::toModel).toList();
 
-        return CollectionModel.of(models, linkTo(methodOn(FuncionarioController.class).getAllFuncionarios()).withSelfRel());
+        return CollectionModel.of(models, linkTo(methodOn(FuncionarioControllerAPI.class).getAllFuncionarios()).withSelfRel());
     }
 
     @Operation(summary = "Obtém um funcionário pelo ID")
@@ -64,7 +64,7 @@ public class FuncionarioController {
     public ResponseEntity<EntityModel<Funcionario>> createFuncionario(@RequestBody Funcionario novoFuncionario) {
         funcionarioService.salvar(novoFuncionario);
         return ResponseEntity.created(
-                        linkTo(methodOn(FuncionarioController.class).getFuncionarioById(novoFuncionario.getId())).toUri())
+                        linkTo(methodOn(FuncionarioControllerAPI.class).getFuncionarioById(novoFuncionario.getId())).toUri())
                 .body(assembler.toModel(novoFuncionario));
     }
 

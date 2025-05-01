@@ -1,6 +1,6 @@
 package com.layla.colaboradores.hateoas;
 
-import com.layla.colaboradores.controller.apirest.FuncionarioController;
+import com.layla.colaboradores.controller.apirest.FuncionarioControllerAPI;
 import com.layla.colaboradores.entity.Funcionario;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -14,8 +14,8 @@ public class FuncionarioModelAssembler implements RepresentationModelAssembler<F
     @Override
     public EntityModel<Funcionario> toModel(Funcionario funcionario) {
         return EntityModel.of(funcionario,
-                linkTo(methodOn(FuncionarioController.class).getFuncionarioById(funcionario.getId())).withSelfRel(),
-                linkTo(methodOn(FuncionarioController.class).getAllFuncionarios()).withRel("todos-funcionarios")
+                linkTo(methodOn(FuncionarioControllerAPI.class).getFuncionarioById(funcionario.getId())).withSelfRel(),
+                linkTo(methodOn(FuncionarioControllerAPI.class).getAllFuncionarios()).withRel("todos-funcionarios")
         );
     }
 }

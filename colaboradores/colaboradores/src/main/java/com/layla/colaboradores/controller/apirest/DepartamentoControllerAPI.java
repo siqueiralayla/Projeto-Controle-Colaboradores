@@ -22,7 +22,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 @RestController
 @RequestMapping("/departamentos")
 @Tag(name = "DepartamentoController", description = "Gerenciamento de Departamentos")
-public class DepartamentoController {
+public class DepartamentoControllerAPI {
 
     @Autowired
     private DepartamentoService departamentoService;
@@ -41,7 +41,7 @@ public class DepartamentoController {
                 .map(assembler::toModel)
                 .toList();
 
-        return CollectionModel.of(models, linkTo(methodOn(DepartamentoController.class).getAllDepartamentos()).withSelfRel());
+        return CollectionModel.of(models, linkTo(methodOn(DepartamentoControllerAPI.class).getAllDepartamentos()).withSelfRel());
     }
 
     @Operation(summary = "Obtém um departamento pelo ID")
@@ -68,7 +68,7 @@ public class DepartamentoController {
     public ResponseEntity<EntityModel<Departamento>> createDepartamento(@RequestBody Departamento novoDepartamento) {
         departamentoService.salvar(novoDepartamento);
         return ResponseEntity
-                .created(linkTo(methodOn(DepartamentoController.class).getDepartamentoById(novoDepartamento.getId())).toUri())
+                .created(linkTo(methodOn(DepartamentoControllerAPI.class).getDepartamentoById(novoDepartamento.getId())).toUri())
                 .body(assembler.toModel(novoDepartamento));
     }
 
