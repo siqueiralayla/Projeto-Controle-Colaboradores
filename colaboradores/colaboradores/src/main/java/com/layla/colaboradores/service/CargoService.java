@@ -2,6 +2,7 @@ package com.layla.colaboradores.service;
 
 import com.layla.colaboradores.entity.Cargo;
 import com.layla.colaboradores.repository.CargoRepository;
+import com.layla.colaboradores.util.PaginacaoUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,10 +47,20 @@ public class CargoService  {
     }
 
     @Transactional(readOnly = true)
-    public Page<Cargo> buscarPorPagina(int pagina, String direcao) {
-        int tamanho = 5;
+    public PaginacaoUtil<Cargo> buscarPorPagina(int pagina, String direcao) {
+        int tamanho = 5; // tamanho da página
         Sort sort = Sort.by(Sort.Direction.fromString(direcao), "nome");
-        PageRequest pageRequest = PageRequest.of(pagina, tamanho, sort);
-        return cargoRepository.findAll(pageRequest);
+        PageRequest pageRequest = PageRequest.of(pagina - 1, tamanho, sort); // corrigido para página 0-based
+
+        Page<Cargo> page = cargoRepository.findAll(pageRequest);
+
+        return new PaginacaoUtil<>(
+                page.getSize(),
+                page.getNumber() + 1,
+                page.getTotalPages(),
+                direcao,
+                page.getContent()
+        );
     }
+
 }

@@ -28,8 +28,8 @@ public class Funcionario extends AbstractEntity<Long> {
 
     @NotNull
     @NumberFormat(style = Style.CURRENCY, pattern = "#,##0.00")
-    @Column(nullable = false, columnDefinition = "DECIMAL(7,2) DEFAULT 0.00")
-    private BigDecimal salario;
+    @Column(nullable = false, precision = 7, scale = 2)
+    private BigDecimal salario = BigDecimal.ZERO;
 
     @NotNull
     @PastOrPresent(message = "{PastOrPresent.funcionario.dataEntrada}")

@@ -1,6 +1,6 @@
 package com.layla.colaboradores.hateoas;
 
-import com.layla.colaboradores.controller.apirest.CargoController;
+import com.layla.colaboradores.controller.apirest.CargoControllerAPI;
 import com.layla.colaboradores.entity.Cargo;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -14,8 +14,8 @@ public class CargoModelAssembler implements RepresentationModelAssembler<Cargo, 
     @Override
     public EntityModel<Cargo> toModel(Cargo cargo) {
         return EntityModel.of(cargo,
-                linkTo(methodOn(CargoController.class).getCargoById(cargo.getId())).withSelfRel(),
-                linkTo(methodOn(CargoController.class).getAllCargos()).withRel("todos-cargos")
+                linkTo(methodOn(CargoControllerAPI.class).getCargoById(cargo.getId())).withSelfRel(),
+                linkTo(methodOn(CargoControllerAPI.class).getAllCargos()).withRel("todos-cargos")
         );
     }
 }
